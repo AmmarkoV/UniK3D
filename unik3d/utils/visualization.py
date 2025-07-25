@@ -32,6 +32,57 @@ def colorize(
     img = value[..., :3]
     return img
 
+def grayscale(
+    value: np.ndarray, vmin: float = None, vmax: float = None
+):
+    # If already RGB, do nothing
+    if value.ndim > 2:
+        if value.shape[-1] > 1:
+            return value
+        value = value[..., 0]
+
+    invalid_mask = value < 0.0001
+
+    # Normalize to 0-255 range
+    vmin = value.min() if vmin is None else vmin
+    vmax = value.max() if vmax is None else vmax
+    value = (value - vmin) / (vmax - vmin)
+    value = (255 * value).clip(0, 255).astype(np.uint8)
+
+    # Apply invalid mask
+    value[invalid_mask] = 0
+
+    # Convert to 3-channel grayscale
+    gray_rgb = np.stack([value] * 3, axis=-1)  # shape: (H, W, 3)
+    return gray_rgb
+
+
+def grayscale_flipped(
+    value: np.ndarray, vmin: float = None, vmax: float = None
+):
+    # If already RGB, do nothing
+    if value.ndim > 2:
+        if value.shape[-1] > 1:
+            return value
+        value = value[..., 0]
+
+    invalid_mask = value < 0.0001
+
+    # Normalize and invert: closer (smaller) → higher intensity
+    vmin = value.min() if vmin is None else vmin
+    vmax = value.max() if vmax is None else vmax
+    value = (value - vmin) / (vmax - vmin)
+    value = 1.0 - value  # Invert
+
+    # Scale to 0-255
+    value = (255 * value).clip(0, 255).astype(np.uint8)
+
+    # Apply invalid mask
+    value[invalid_mask] = 0
+
+    # Convert to 3-channel grayscale
+    gray_rgb = np.stack([value] * 3, axis=-1)
+    return gray_rgb
 
 def image_grid(imgs: list[np.ndarray], rows: int, cols: int) -> np.ndarray:
     if not len(imgs):

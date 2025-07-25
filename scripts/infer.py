@@ -10,7 +10,7 @@ from PIL import Image
 from unik3d.models import UniK3D
 from unik3d.utils.camera import (MEI, OPENCV, BatchCamera, Fisheye624, Pinhole,
                                  Spherical)
-from unik3d.utils.visualization import colorize, save_file_ply
+from unik3d.utils.visualization import colorize, grayscale, grayscale_flipped, save_file_ply
 
 
 def save(rgb, outputs, name, base_path, save_map=False, save_pointcloud=False):
@@ -24,9 +24,11 @@ def save(rgb, outputs, name, base_path, save_map=False, save_pointcloud=False):
     depth = depth.cpu().numpy()
     rays = ((rays + 1) * 127.5).clip(0, 255)
     if save_map:
-        Image.fromarray(colorize(depth.squeeze())).save(
-            os.path.join(base_path, f"{name}_depth.png")
-        )
+        Image.fromarray(colorize(depth.squeeze())).save(os.path.join(base_path, f"{name}_depth.png") )
+        #Image.fromarray(grayscale(depth.squeeze())).save(os.path.join(base_path, f"{name}_depth.png") )
+        #Image.fromarray(grayscale_flipped(depth.squeeze())).save(os.path.join(base_path, f"{name}_depth.png") )
+
+
         Image.fromarray(rays.squeeze().permute(1, 2, 0).byte().cpu().numpy()).save(
             os.path.join(base_path, f"{name}_rays.png")
         )
