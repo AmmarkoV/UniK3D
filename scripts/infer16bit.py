@@ -12,30 +12,6 @@ from unik3d.utils.camera import (MEI, OPENCV, BatchCamera, Fisheye624, Pinhole, 
 from unik3d.utils.visualization import colorize, grayscale, grayscale_flipped, save_file_ply
 
 
-def saveOLD(rgb, outputs, name, base_path, save_map=False, save_pointcloud=False):
-
-    os.makedirs(base_path, exist_ok=True)
-
-    depth = outputs["depth"]
-    rays = outputs["rays"]
-    points = outputs["points"]
-
-    depth = depth.cpu().numpy()
-    rays = ((rays + 1) * 127.5).clip(0, 255)
-    if save_map:
-        Image.fromarray(colorize(depth.squeeze())).save(os.path.join(base_path, f"{name}_depth.png") )
-        #Image.fromarray(grayscale(depth.squeeze())).save(os.path.join(base_path, f"{name}_depth.png") )
-        #Image.fromarray(grayscale_flipped(depth.squeeze())).save(os.path.join(base_path, f"{name}_depth.png") )
-
-
-        Image.fromarray(rays.squeeze().permute(1, 2, 0).byte().cpu().numpy()).save(
-            os.path.join(base_path, f"{name}_rays.png")
-        )
-
-    if save_pointcloud:
-        predictions_3d = points.permute(0, 2, 3, 1).reshape(-1, 3).cpu().numpy()
-        rgb = rgb.permute(1, 2, 0).reshape(-1, 3).cpu().numpy()
-        save_file_ply(predictions_3d, rgb, os.path.join(base_path, f"{name}.ply"))
 
 def save(rgb, outputs, name, base_path, save_map=False, save_pointcloud=False):
     os.makedirs(base_path, exist_ok=True)
