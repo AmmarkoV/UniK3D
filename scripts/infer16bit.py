@@ -48,32 +48,32 @@ def save(rgb, outputs, name, base_path, save_map=False, save_pointcloud=False):
         rgb = rgb.permute(1, 2, 0).reshape(-1, 3).cpu().numpy()
         save_file_ply(predictions_3d, rgb, os.path.join(base_path, f"{name}.ply"))
 
-def infer(model, args):
-    rgb = np.array(Image.open(args.input))
+def infer(model, args, input_file):
+  try:
+    rgb = np.array(Image.open(input_file).convert("RGB"))
     rgb_torch = torch.from_numpy(rgb).permute(2, 0, 1)
 
     camera = None
-    camera_path = args.camera_path
-    if camera_path is not None:
-        with open(camera_path, "r") as f:
+    if args.camera_path is not None:
+        with open(args.camera_path, "r") as f:
             camera_dict = json.load(f)
-
         params = torch.tensor(camera_dict["params"])
         name = camera_dict["name"]
         assert name in ["Fisheye624", "Spherical", "OPENCV", "Pinhole", "MEI"]
         camera = eval(name)(params=params)
 
     outputs = model.infer(rgb=rgb_torch, camera=camera, normalize=True, rays=None)
-    name = args.input.split("/")[-1].split(".")[0]
+    name = os.path.splitext(os.path.basename(input_file))[0]
     save(
-         rgb_torch,
-         outputs,
-         name=name,
-         base_path=args.output,
-         save_map=args.save,
-         save_pointcloud=args.save_ply,
-        )
-
+        rgb_torch,
+        outputs,
+        name=name,
+        base_path=args.output,
+        save_map=args.save,
+        save_pointcloud=args.save_ply,
+    )
+  except:
+    print("Failed processing ",input_file)
 
 if __name__ == "__main__":
     # Arguments
