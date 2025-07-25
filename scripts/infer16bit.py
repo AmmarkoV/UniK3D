@@ -99,4 +99,20 @@ if __name__ == "__main__":
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     model = model.to(device).eval()
 
-    infer(model, args)
+
+
+    # === File loader: single image or txt file ===
+    if os.path.isfile(args.input):
+        if args.input.endswith(".txt"):
+            with open(args.input, "r") as f:
+                files = f.read().splitlines()
+        else:
+            files = [args.input]
+    else:
+        raise FileNotFoundError(f"Input path '{args.input}' not found")
+
+    for idx, input_file in enumerate(files):
+        print(f"[{idx+1}/{len(files)}] Processing: {input_file}")
+        infer(model, args, input_file)
+
+    #infer(model, args)
