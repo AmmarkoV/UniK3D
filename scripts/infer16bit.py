@@ -90,13 +90,13 @@ def infer(model, args):
     outputs = model.infer(rgb=rgb_torch, camera=camera, normalize=True, rays=None)
     name = args.input.split("/")[-1].split(".")[0]
     save(
-        rgb_torch,
-        outputs,
-        name=name,
-        base_path=args.output,
-        save_map=args.save,
-        save_pointcloud=args.save_ply,
-    )
+         rgb_torch,
+         outputs,
+         name=name,
+         base_path=args.output,
+         save_map=args.save,
+         save_pointcloud=args.save_ply,
+        )
 
 
 if __name__ == "__main__":
