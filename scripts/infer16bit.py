@@ -11,17 +11,13 @@ from unik3d.models import UniK3D
 from unik3d.utils.camera import (MEI, OPENCV, BatchCamera, Fisheye624, Pinhole, Spherical)
 from unik3d.utils.visualization import colorize, grayscale, grayscale_flipped, save_file_ply
 
-
-
 def save(rgb, outputs, name, base_path, save_map=False, save_pointcloud=False):
     os.makedirs(base_path, exist_ok=True)
-
-    depth = outputs["depth"]
-    rays = outputs["rays"]
+    depth  = outputs["depth"]
+    rays   = outputs["rays"]
     points = outputs["points"]
 
     depth = depth.cpu().numpy()  # shape: (1, H, W)
-    rays = ((rays + 1) * 127.5).clip(0, 255)
     import cv2
 
     if save_map:
@@ -41,6 +37,7 @@ def save(rgb, outputs, name, base_path, save_map=False, save_pointcloud=False):
         print(f"Saved 16-bit depth map: {depth16_path}")
 
         # Save rays as image
+        #rays = ((rays + 1) * 127.5).clip(0, 255)
         #Image.fromarray(rays.squeeze().permute(1, 2, 0).byte().cpu().numpy()).save(os.path.join(base_path, f"{name}_rays.png"))
 
     if save_pointcloud:
