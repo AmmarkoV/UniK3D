@@ -23,7 +23,7 @@ from unik3d.models import UniK3D
 from unik3d.utils.camera import (MEI, OPENCV, BatchCamera, Fisheye624, Pinhole, Spherical)
 from unik3d.utils.visualization import colorize, grayscale, grayscale_flipped, save_file_ply
 
-def saveD(rgb, outputs, name, base_path, save_map=False, save_distance=False, save_pointcloud=False):
+def saveD(rgb, outputs, name, base_path, save_map=False, save_distance=True, save_pointcloud=False):
     os.makedirs(base_path, exist_ok=True)
     import cv2
 
@@ -59,12 +59,13 @@ def saveD(rgb, outputs, name, base_path, save_map=False, save_distance=False, sa
             distance_np = distance.squeeze().detach().cpu().numpy()
             if distance_np.ndim != 2:
                 distance_np = distance_np[0]  # (1, H, W) → (H, W)
-            dist_min = distance_np.min()
-            dist_max = distance_np.max()
+            dist_min = 0     #distance_np.min()
+            dist_max = 32000 #distance_np.max()
+            scale = 1000.0
             if dist_max - dist_min < 1e-6:
                 dist_max = dist_min + 1e-3
             dist_norm = (distance_np - dist_min) / (dist_max - dist_min)
-            dist_16bit = (dist_norm * 65535.0).astype(np.uint16)
+            dist_16bit = (dist_norm * scale * 65535.0).astype(np.uint16)
             distance_path = os.path.join(base_path, f"{name}_distance.png")
             cv2.imwrite(distance_path, dist_16bit)
             print(f"Saved 16-bit distance map: {distance_path} {distance_np.shape}")
