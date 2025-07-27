@@ -2,6 +2,18 @@ import argparse
 import json
 import os
 
+# python3 scripts/infer16bit.py --input /home/ammar/Documents/Programming/RGBToPoseDetect2D/datasets/openpose/data/factory2.txt --output unik3d_factory2 --save --config-file configs/train/vitl.json 
+
+class bcolors:
+    HEADER = '\033[95m'
+    OKBLUE = '\033[94m'
+    OKGREEN = '\033[92m'
+    WARNING = '\033[93m'
+    FAIL = '\033[91m'
+    ENDC = '\033[0m'
+    BOLD = '\033[1m'
+    UNDERLINE = '\033[4m'
+
 import numpy as np
 import torch
 import torch.nn as nn
@@ -13,9 +25,15 @@ from unik3d.utils.visualization import colorize, grayscale, grayscale_flipped, s
 
 def save(rgb, outputs, name, base_path, save_map=False, save_pointcloud=False):
     os.makedirs(base_path, exist_ok=True)
+    #-------------------------------------------
     depth  = outputs["depth"]
     rays   = outputs["rays"]
     points = outputs["points"]
+    #-------------------------------------------
+    #print("Outputs ",outputs.keys())
+    #print("Confidence ",outputs["confidence"])
+    #print("Distance ",outputs["distance"])
+    #-------------------------------------------
 
     depth = depth.cpu().numpy()  # shape: (1, H, W)
     import cv2
@@ -25,7 +43,15 @@ def save(rgb, outputs, name, base_path, save_map=False, save_pointcloud=False):
         #Image.fromarray(colorize(depth.squeeze())).save(os.path.join(base_path, f"{name}_depth.png"))
 
         # === Save 16-bit depth ===
-        d = depth.squeeze()  # shape (H, W)
+        while depth.ndim > 2 and depth.shape[0] == 1:
+            depth = depth[0]  # Strip batch/channel dimensions one by one
+
+        if (depth.shape[0]==1 or depth.shape[1]==1 ):
+            Image.fromarray(colorize(depth.squeeze())).save(os.path.join(base_path, f"{name}_debug.png"))
+            raise ValueError(f"Unexpected depth shape: {depth.shape} on {name}")
+
+        d = depth         
+
         d_min = d.min()
         d_max = d.max()
         if d_max - d_min < 1e-6:
@@ -34,7 +60,7 @@ def save(rgb, outputs, name, base_path, save_map=False, save_pointcloud=False):
         d_16bit = (d_norm * 65535.0).astype(np.uint16)
         depth16_path = os.path.join(base_path, f"{name}_depth.png")
         cv2.imwrite(depth16_path, d_16bit)
-        print(f"Saved 16-bit depth map: {depth16_path}")
+        print(f"Saved 16-bit depth map: {depth16_path} {depth.shape}")
 
         # Save rays as image
         #rays = ((rays + 1) * 127.5).clip(0, 255)
@@ -45,9 +71,13 @@ def save(rgb, outputs, name, base_path, save_map=False, save_pointcloud=False):
         rgb = rgb.permute(1, 2, 0).reshape(-1, 3).cpu().numpy()
         save_file_ply(predictions_3d, rgb, os.path.join(base_path, f"{name}.ply"))
 
+#python3 scripts/infer.py --input unik3d_work.jpg --output output --config configs/train/vitl.json --save
+
+
 def infer(model, args, input_file):
   try:
     rgb = np.array(Image.open(input_file).convert("RGB"))
+    print("Opened file ",input_file," -> ",rgb.shape)
     rgb_torch = torch.from_numpy(rgb).permute(2, 0, 1)
 
     camera = None
@@ -69,8 +99,11 @@ def infer(model, args, input_file):
         save_map=args.save,
         save_pointcloud=args.save_ply,
     )
-  except:
-    print("Failed processing ",input_file)
+  except Exception as e: 
+    print(bcolors.WARNING)
+    print("Failed processing ",input_file," \n") 
+    print(e)
+    print(bcolors.ENDC)
 
 if __name__ == "__main__":
     # Arguments
@@ -107,6 +140,9 @@ if __name__ == "__main__":
             files = [args.input]
     else:
         raise FileNotFoundError(f"Input path '{args.input}' not found")
+
+    #Have some meaningful order..
+    files.sort()
 
     for idx, input_file in enumerate(files):
         print(f"[{idx+1}/{len(files)}] Processing: {input_file}")
