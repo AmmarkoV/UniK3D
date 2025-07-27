@@ -23,6 +23,58 @@ from unik3d.models import UniK3D
 from unik3d.utils.camera import (MEI, OPENCV, BatchCamera, Fisheye624, Pinhole, Spherical)
 from unik3d.utils.visualization import colorize, grayscale, grayscale_flipped, save_file_ply
 
+def saveD(rgb, outputs, name, base_path, save_map=False, save_distance=False, save_pointcloud=False):
+    os.makedirs(base_path, exist_ok=True)
+    import cv2
+
+    depth  = outputs["depth"]
+    rays   = outputs["rays"]
+    points = outputs["points"]
+    distance = outputs.get("distance", None)
+
+    # Process depth
+    depth = depth.cpu().numpy()
+
+    # === Save DepthMap ===
+    if save_map:
+        # Strip extra dimensions
+        while depth.ndim > 2 and depth.shape[0] == 1:
+            depth = depth[0]
+
+        if (depth.shape[0] == 1 or depth.shape[1] == 1):
+            #Image.fromarray(colorize(depth.squeeze())).save(os.path.join(base_path, f"{name}_debug.png"))
+            raise ValueError(f"Unexpected depth shape: {depth.shape} on {name}")
+
+        d_min = depth.min()
+        d_max = depth.max()
+        if d_max - d_min < 1e-6:
+            d_max = d_min + 1e-3
+        d_norm = (depth - d_min) / (d_max - d_min)
+        d_16bit = (d_norm * 65535.0).astype(np.uint16)
+        cv2.imwrite(os.path.join(base_path, f"{name}_depth.png"), d_16bit)
+        print(f"Saved 16-bit depth map: {name}_depth.png {depth.shape}")
+
+    # === Save Distance Map ===
+    if (distance is not None) and (save_distance):
+            distance_np = distance.squeeze().detach().cpu().numpy()
+            if distance_np.ndim != 2:
+                distance_np = distance_np[0]  # (1, H, W) → (H, W)
+            dist_min = distance_np.min()
+            dist_max = distance_np.max()
+            if dist_max - dist_min < 1e-6:
+                dist_max = dist_min + 1e-3
+            dist_norm = (distance_np - dist_min) / (dist_max - dist_min)
+            dist_16bit = (dist_norm * 65535.0).astype(np.uint16)
+            distance_path = os.path.join(base_path, f"{name}_distance.png")
+            cv2.imwrite(distance_path, dist_16bit)
+            print(f"Saved 16-bit distance map: {distance_path} {distance_np.shape}")
+
+    if save_pointcloud:
+        predictions_3d = points.permute(0, 2, 3, 1).reshape(-1, 3).cpu().numpy()
+        rgb = rgb.permute(1, 2, 0).reshape(-1, 3).cpu().numpy()
+        save_file_ply(predictions_3d, rgb, os.path.join(base_path, f"{name}.ply"))
+
+
 def save(rgb, outputs, name, base_path, save_map=False, save_pointcloud=False):
     os.makedirs(base_path, exist_ok=True)
     #-------------------------------------------
@@ -47,7 +99,7 @@ def save(rgb, outputs, name, base_path, save_map=False, save_pointcloud=False):
             depth = depth[0]  # Strip batch/channel dimensions one by one
 
         if (depth.shape[0]==1 or depth.shape[1]==1 ):
-            Image.fromarray(colorize(depth.squeeze())).save(os.path.join(base_path, f"{name}_debug.png"))
+            #Image.fromarray(colorize(depth.squeeze())).save(os.path.join(base_path, f"{name}_debug.png"))
             raise ValueError(f"Unexpected depth shape: {depth.shape} on {name}")
 
         d = depth         
@@ -90,8 +142,8 @@ def infer(model, args, input_file):
         camera = eval(name)(params=params)
 
     outputs = model.infer(rgb=rgb_torch, camera=camera, normalize=True, rays=None)
-    name = os.path.splitext(os.path.basename(input_file))[0]
-    save(
+    name    = os.path.splitext(os.path.basename(input_file))[0]
+    saveD(
         rgb_torch,
         outputs,
         name=name,
@@ -128,8 +180,6 @@ if __name__ == "__main__":
 
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     model = model.to(device).eval()
-
-
 
     # === File loader: single image or txt file ===
     if os.path.isfile(args.input):
