@@ -29,6 +29,8 @@ def main():
     parser.add_argument("--output-dir", default="output_images", help="Directory to save output images.")
     parser.add_argument("--output-json", default="output.json", help="Path to save JSON results.")
     parser.add_argument("--start", type=int, default=0, help="Index to start processing from (for resume).")
+    parser.add_argument("--dist-min", type=float, default=0.0, help="Minimum distance value for normalization.")
+    parser.add_argument("--dist-max", type=float, default=20.0, help="Maximum distance value for normalization.")
     args = parser.parse_args()
 
     os.makedirs(args.output_dir, exist_ok=True)
@@ -51,6 +53,8 @@ def main():
             # Call Gradio endpoint (assumes default api_name if not custom)
             depth_img, distance_img = client.predict(
                 handle_file(image_path),
+                args.dist_min,
+                args.dist_max,
                 api_name="/predict"  # default Gradio endpoint
             )
 

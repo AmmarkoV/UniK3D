@@ -16,7 +16,7 @@ device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 model = model.to(device).eval()
 
 # === Main inference function ===
-def predict_depth_and_distance(image):
+def predict_depth_and_distance(image, dist_min, dist_max):
     # Convert image to tensor
     rgb = np.array(image.convert("RGB"))
     rgb_torch = torch.from_numpy(rgb).permute(2, 0, 1).unsqueeze(0).float().to(device)
@@ -38,8 +38,9 @@ def predict_depth_and_distance(image):
     distance = outputs.get("distance", None)
     if distance is not None:
         distance_np = distance.squeeze().cpu().numpy()
-        dist_min = 0
-        dist_max = 32000
+        print("Distance Min : ",distance_np.min()," Distance Max: ",distance_np.max())
+        #dist_min = 0
+        #dist_max = 20
         dist_norm = (distance_np - dist_min) / (dist_max - dist_min + 1e-8)
         #distance_16bit = (dist_norm * 65535.0).astype(np.uint16) 
         #distance_img = Image.fromarray(distance_16bit)
@@ -53,13 +54,17 @@ def predict_depth_and_distance(image):
 # === Gradio Interface ===
 demo = gr.Interface(
     fn=predict_depth_and_distance,
-    inputs=gr.Image(type="pil", label="Upload RGB Image"),
+    inputs=[
+        gr.Image(type="pil", label="Upload RGB Image"),
+        gr.Number(value=0, label="Distance Min (meters)"),
+        gr.Number(value=20, label="Distance Max (meters)")
+    ],
     outputs=[
-        gr.Image(type="pil", label="Depth Map"),
-        gr.Image(type="pil", label="Distance Map"),
+        gr.Image(type="pil", label="Depth Map (8-bit normalized)"),
+        gr.Image(type="pil", label="Distance Map (8-bit normalized)")
     ],
     title="UniK3D Depth and Distance Estimator",
-    description="Upload an RGB image to get depth and distance maps using UniK3D."
+    description="Upload an RGB image to get depth and distance maps using UniK3D. You can adjust the min/max distance range for visualization."
 )
 
 if __name__ == "__main__":
