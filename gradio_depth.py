@@ -28,9 +28,11 @@ def predict_depth_and_distance(image):
     depth = outputs["depth"].squeeze().cpu().numpy()
     d_min, d_max = depth.min(), depth.max()
     d_norm = (depth - d_min) / (d_max - d_min + 1e-8)
-    depth_16bit = (d_norm * 65535.0).astype(np.uint16)
-    depth_colored = cv2.applyColorMap(cv2.convertScaleAbs(depth_16bit, alpha=0.03), cv2.COLORMAP_JET)
-    depth_img = Image.fromarray(depth_colored)
+    #depth_16bit = (d_norm * 65535.0).astype(np.uint16)
+    #depth_img = Image.fromarray(depth_16bit)
+    depth_8bit = (d_norm * 255.0).astype(np.uint8)
+    #depth_colored = cv2.applyColorMap(cv2.convertScaleAbs(depth_16bit, alpha=0.03), cv2.COLORMAP_JET)
+    depth_img = Image.fromarray(depth_8bit)
 
     # Process distance map (optional)
     distance = outputs.get("distance", None)
@@ -39,9 +41,10 @@ def predict_depth_and_distance(image):
         dist_min = 0
         dist_max = 32000
         dist_norm = (distance_np - dist_min) / (dist_max - dist_min + 1e-8)
-        distance_16bit = (dist_norm * 65535.0).astype(np.uint16)
-        distance_colored = cv2.applyColorMap(cv2.convertScaleAbs(distance_16bit, alpha=0.03), cv2.COLORMAP_JET)
-        distance_img = Image.fromarray(distance_colored)
+        #distance_16bit = (dist_norm * 65535.0).astype(np.uint16) 
+        #distance_img = Image.fromarray(distance_16bit)
+        distance_8bit = (d_norm * 255.0).astype(np.uint8)
+        distance_img = Image.fromarray(distance_8bit)
     else:
         distance_img = Image.new("RGB", depth.shape[::-1], color=(0, 0, 0))
 
