@@ -3,6 +3,9 @@ import json
 import os
 
 # python3 scripts/infer16bit.py --input /home/ammar/Documents/Programming/RGBToPoseDetect2D/datasets/openpose/data/factory2.txt --output unik3d_factory2 --save --config-file configs/train/vitl.json 
+#python3 scripts/infer16bit.py --input /home/ammar/Downloads/AmmarkoVX/20250522_145824.jpg --output unik3d_factory2 --save --config-file configs/train/vitl.json 
+
+
 
 class bcolors:
     HEADER = '\033[95m'
