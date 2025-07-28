@@ -8,6 +8,9 @@ import tempfile
 from unik3d.models import UniK3D
 from unik3d.utils.camera import Fisheye624, Spherical, OPENCV, Pinhole, MEI
 
+port="7860"
+server_name="0.0.0.0"
+
 # === Load model once ===
 model = UniK3D.from_pretrained("lpiccinelli/unik3d-vitl")
 model.resolution_level = 9
@@ -68,5 +71,5 @@ demo = gr.Interface(
 )
 
 if __name__ == "__main__":
-    demo.launch()
+    demo.launch(server_name=server_name, server_port=int(port))
 
