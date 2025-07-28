@@ -43,7 +43,7 @@ def predict_depth_and_distance(image):
         dist_norm = (distance_np - dist_min) / (dist_max - dist_min + 1e-8)
         #distance_16bit = (dist_norm * 65535.0).astype(np.uint16) 
         #distance_img = Image.fromarray(distance_16bit)
-        distance_8bit = (d_norm * 255.0).astype(np.uint8)
+        distance_8bit = (dist_norm * 255.0).astype(np.uint8)
         distance_img = Image.fromarray(distance_8bit)
     else:
         distance_img = Image.new("RGB", depth.shape[::-1], color=(0, 0, 0))
