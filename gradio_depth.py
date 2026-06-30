@@ -1,3 +1,11 @@
+import os
+import tempfile
+# Isolate THIS server's gradio temp cache (must be set before importing gradio) so the
+# delete_cache reaper below only ever touches our own files, not those of other gradio
+# servers/clients that would otherwise share the default /tmp/gradio.
+if "GRADIO_TEMP_DIR" not in os.environ:
+    os.environ["GRADIO_TEMP_DIR"] = tempfile.mkdtemp(prefix="unik3d_server_")
+
 import gradio as gr
 import numpy as np
 import torch
@@ -67,7 +75,10 @@ demo = gr.Interface(
         gr.Image(type="pil", label="Distance Map (8-bit normalized)")
     ],
     title="UniK3D Depth and Distance Estimator",
-    description="Upload an RGB image to get depth and distance maps using UniK3D. You can adjust the min/max distance range for visualization."
+    description="Upload an RGB image to get depth and distance maps using UniK3D. You can adjust the min/max distance range for visualization.",
+    # Periodically purge gradio's temp output cache (/tmp/gradio) so a long batch of
+    # requests doesn't fill the disk: every 600s, delete cached files older than 600s.
+    delete_cache=(600, 600),
 )
 
 if __name__ == "__main__":

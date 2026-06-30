@@ -2,9 +2,25 @@ import os
 import sys
 import time
 import json
+import shutil
+import tempfile
 import argparse
 import cv2
 from gradio_client import Client, handle_file
+
+# Private per-process download dir. gradio_client otherwise pools downloads in the SHARED
+# /tmp/gradio used by every other gradio client AND server on the machine — cleaning that
+# would race with their in-flight files. We isolate ours and only clean our own dir.
+GRADIO_DL_DIR = tempfile.mkdtemp(prefix="unik3d_client_")
+
+def wipe_dir(d):
+    """Remove everything inside our private download dir (this process owns it exclusively)."""
+    for name in os.listdir(d):
+        p = os.path.join(d, name)
+        try:
+            shutil.rmtree(p) if os.path.isdir(p) else os.remove(p)
+        except OSError:
+            pass
 
 def is_image_file(filename):
     return filename.lower().endswith((".jpg", ".jpeg", ".png", ".bmp"))
@@ -42,7 +58,7 @@ def main():
         return
 
     print(f"Connecting to http://{args.ip}:{args.port}")
-    client = Client(f"http://{args.ip}:{args.port}")
+    client = Client(f"http://{args.ip}:{args.port}", download_files=GRADIO_DL_DIR)
 
     results = {}
     for i, image_path in enumerate(files[args.start:], start=args.start):
@@ -65,6 +81,7 @@ def main():
 
             cv2.imwrite(depth_path, cv2.imread(depth_img))
             cv2.imwrite(distance_path, cv2.imread(distance_img))
+            wipe_dir(GRADIO_DL_DIR)   # free our private gradio download cache
 
             # Store results
             results[image_path] = {
